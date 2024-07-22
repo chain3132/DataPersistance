@@ -1,0 +1,237 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Mathematics;
+using UnityEngine;
+using Random = UnityEngine.Random;
+
+/*
+public class flowerPot : MonoBehaviour,IDataPersistance
+{
+    
+    private GameObject _potThatSelected;
+    private Sprite[] flowerSprite;
+    [Header("Flower")]
+    public SpriteRenderer _spriteRenderer;
+    public int[] _growstage;
+    public int _currentStage = 0;
+    public string flowerName;
+    public int plantAge;
+    public bool potHasSeed = false;
+    private int timeChange ;
+    public bool watered = false;
+    
+    [Header("ExpGenerate")]
+    [SerializeField]private GameObject coinPreFab;
+    public int CoinsPerTime = 10; // Maximum number of coins per day
+    private int currentCoinCount = 0;
+    public float coinProductionInterval = 0.3f;
+    private Coroutine coinProductionCoroutine;
+    private Coroutine RandomDropCoroutine;
+    private float maxDropInterval = 10f;
+    private float minDropInterval = 5f;
+    
+    [Header("GenerateId")]
+    [SerializeField] private string id;
+    
+    
+    [ContextMenu("Generate guid for id")]
+    private void GenerateGuid()
+    {
+        id = System.Guid.NewGuid().ToString();
+    }
+    private void Awake()
+    {
+        _spriteRenderer = GetComponent<SpriteRenderer>();
+        plantAge = 0;
+        /*if (string.IsNullOrEmpty(id))
+        {
+            id = System.Guid.NewGuid().ToString();
+        }*/
+    }
+
+    private void Start()
+    {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnDayPass += DayPass;
+            Debug.Log("event sub");
+        }
+        RandomDropCoroutine = StartCoroutine(RandomDropCoins());
+        
+    }
+*/
+    
+
+    public void LoadData(GameData data)
+    {
+        Debug.Log("Loading data...");
+        Debug.Log("Pot ID: " + id);
+        Debug.Log("Found data.flowerInPots with count: " + data.flowerInPots.Count);
+        
+        foreach (var potData in data.flowerInPots)
+        {
+            Debug.Log("foreach check"  );
+            if (potData.id == id)
+            {
+                flowerName = potData.flowerName;
+                plantAge = potData.plantAge;
+                _currentStage = potData.currentStage;
+                potHasSeed = potData.potHasSeed;
+                watered = potData.watered;
+                _growstage = potData.growStages;
+                
+                // Load flower sprites
+                if (potHasSeed)
+                {
+                    flowerSprite = new Sprite[potData.flowerSprites.Length];
+                    for (int i = 0; i < potData.flowerSprites.Length; i++)
+                    {
+                        flowerSprite[i] = potData.flowerSprites[i];
+                    }
+                    _spriteRenderer.sprite = flowerSprite[_currentStage - 1];
+                }
+                
+                break;
+            }
+        }
+    }
+
+    public void SaveData( GameData data)
+    {
+        FlowerPotData potData = new FlowerPotData();
+        potData.id = id;
+        potData.flowerName = flowerName;
+        potData.plantAge = plantAge;
+        potData.currentStage = _currentStage;
+        potData.potHasSeed = potHasSeed;
+        potData.watered = watered;
+        potData.growStages = _growstage;
+    
+        // Save flower sprites
+        if (potHasSeed)
+        {
+            potData.flowerSprites = new Sprite[flowerSprite.Length];
+            for (int i = 0; i < flowerSprite.Length; i++)
+            {
+                potData.flowerSprites[i] = flowerSprite[i];
+            }
+        }
+        data.flowerInPots.Add(potData);
+        Debug.Log(data.flowerInPots.Count);
+    }
+
+    IEnumerator RandomDropCoins()
+    {
+        while (true)
+        {
+            if (potHasSeed)
+            {
+                currentCoinCount = 0;
+                coinProductionCoroutine = StartCoroutine(ProduceCoins());
+            }
+            yield return new WaitForSeconds(Random.Range(minDropInterval, maxDropInterval));
+            
+        }
+        
+    }
+    
+    IEnumerator ProduceCoins()
+    {
+        while (true)
+        {
+            if (currentCoinCount < CoinsPerTime)
+            {
+                Instantiate(coinPreFab, transform.position, Quaternion.identity);
+                currentCoinCount++;
+            }
+            yield return new WaitForSeconds(coinProductionInterval);
+            
+        }
+    }
+
+    
+
+    private void OnDestroy()
+    {
+        GameManager.Instance.OnDayPass -= DayPass;
+        if (coinProductionCoroutine != null)
+        {
+            StopCoroutine(coinProductionCoroutine);
+        }
+        if (RandomDropCoroutine != null)
+        {
+            StopCoroutine(RandomDropCoroutine);
+        }
+    }
+
+    public void PlantFlower(Flower flower)
+    {
+        int index = 0;
+        flowerName = flower.flowername;
+        _growstage = new int[flower.growstage.Length];
+        flowerSprite = new Sprite[flower.sprites.Length];
+        //collect sprites DATA
+        foreach (var i in flower.sprites)
+        {
+            flowerSprite[index] = i;
+            index++;
+        }
+        index = 0; // reset index for use collect growstage DATA
+        //collect growstage DATA
+        foreach (var i in flower.growstage)
+        {
+            _growstage[index] = i;
+            index++;
+        }
+        _spriteRenderer.sprite = flowerSprite[0]; // plant seed flower sprite
+        potHasSeed = true;
+        timeChange = 0;
+        _currentStage = 1;
+
+    }
+    private void DayPass()
+    {
+        if (potHasSeed)
+        {
+            if (timeChange < _growstage.Length && watered)
+            {
+                plantAge++;
+                UpdateSprite();
+                
+                Debug.Log("TimeChange =" + timeChange);
+            }
+            else if (timeChange >= _growstage.Length && watered)
+            {
+                plantAge++;
+            }
+            watered = false;
+        }
+        
+    }
+    
+    private void UpdateSprite()
+    {
+        Debug.Log("plantAge = " + plantAge);
+        
+        int index = 0;
+        foreach (var i in _growstage)
+        {
+            if (plantAge == i)
+            {
+                _spriteRenderer.sprite = flowerSprite[index+1];
+                timeChange++;
+                _currentStage ++;
+                break;
+            }
+            index++;
+            
+        }
+        
+        
+    }
+   
+    
+    
+}
