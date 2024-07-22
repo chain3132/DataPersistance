@@ -1,0 +1,38 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+[System.Serializable]
+public class GameData
+{
+    public int PlayerLevel;
+    public float CurrentExp;
+    public List<SoilInPot> soilInPot = new List<SoilInPot>();
+    public List<FlowerPotData> flowerInPots = new List<FlowerPotData>();
+
+    public GameData()
+    {
+        this.PlayerLevel = 1;
+        this.CurrentExp = 0f;
+        
+    }
+}
+[System.Serializable]
+public class FlowerPotData
+{
+    public string id;
+    public string flowerName;
+    public int plantAge;
+    public int currentStage;
+    public bool potHasSeed;
+    public bool watered;
+    public int[] growStages;
+    public Sprite[] flowerSprites;
+}
+
+[System.Serializable]
+public class SoilInPot
+{
+    public string id;
+    public bool potHasSoil;
+}
